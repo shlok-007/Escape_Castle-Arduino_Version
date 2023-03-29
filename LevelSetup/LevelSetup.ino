@@ -65,11 +65,11 @@ void setup() {
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.println(subtitle);
-  display.fillRect(0,  0, 128,  4, CYAN);
-  display.fillRect(0,  4,   5, 124, CYAN);
-  display.fillRect(0, 125,128,  3, CYAN);
-  display.fillRect(125, 4,  3, 124, CYAN);
-  delay(2000);
+  display.fillRect(2,  1, 128,  3, CYAN);
+  display.fillRect(2,  4,   3, 123, CYAN);
+  display.fillRect(2, 125,128,  3, CYAN);
+  display.fillRect(125, 4,  3, 123, CYAN);
+  delay(500);
   display.clearScreen();
 
 }
@@ -86,57 +86,71 @@ void applyPhysics();
 void render( frame frame ){
 
   //rendering platforms
+  display.clearScreen();
+  //drawing borders
+  display.fillRect(2,  1, 128,  3, RED);
+  display.fillRect(2,  4,   3, 123, RED);
+  display.fillRect(2, 127,128,  3, RED);
+  display.fillRect(125, 4,  3, 123, RED);
+  // display.drawFastHLine(2, 1, 128, RED);
+  // display.drawFastHLine(2, 127, 128, RED);
+  // display.drawFastVLine(2, 1, 128, RED);
+  // display.drawFastVLine(127, 1, 128, RED);
+  display.drawPixel(2, 1, WHITE);
+  display.drawPixel(2, 127, WHITE);
+  display.drawPixel(128, 1, WHITE);
+  display.drawPixel(2, 1, WHITE);
   int i;
   for(i=0;i<frame.n_platforms;i++){
-    display.fillRect(7 + frame.platforms[i][0]*11,
-                    7 + frame.platforms[i][1]*11,
+    display.fillRect(9 + frame.platforms[i][0]*11,
+                    9 + frame.platforms[i][1]*11,
                     frame.platforms[i][2]*11,
                     frame.platforms[i][3]*11,
                     random(0x0010,0xFFFF));
   }
   if(frame.key_visible){
-    display.fillCircle(7 + frame.key_pos[0]*11,
-     7 + frame.key_pos[1]*11,
+    display.fillCircle(9 + frame.key_pos[0]*11,
+     9 + frame.key_pos[1]*11,
      2,
      YELLOW);
   }
   if(frame.door_visible){
-    display.fillRect(7 + frame.door_pos[0]*11,
-     7 + frame.door_pos[1]*11,
+    display.fillRect(9 + frame.door_pos[0]*11,
+     9 + frame.door_pos[1]*11,
      6,11,DARKBROWN);
   }
   for(i=0;i<frame.n_obstacles;i++){
-    display.drawCircle(7 + frame.obstacles[i][0]*11,
-     7 + frame.obstacles[i][1]*11,
+    display.drawCircle(9 + frame.obstacles[i][0]*11,
+     9 + frame.obstacles[i][1]*11,
      obstacle_radius,
      MAGENTA);
   }
   for(i=0;i<frame.n_boxes;i++){
-    display.fillRect(7 + frame.boxes[i][0]*11,
-     7 + frame.boxes[i][1]*11,
+    display.fillRect(9 + frame.boxes[i][0]*11,
+     9 + frame.boxes[i][1]*11,
      9,
      5,
      BROWN);
   }
   for(i=0;i<frame.n_switches;i++){
-    display.fillRect(7+ 2 + frame.switches[i][0]*11,
-     7+ 5 + frame.switches[i][1]*11,
+    display.fillRect(9+ 2 + frame.switches[i][0]*11,
+     9+ 5 + frame.switches[i][1]*11,
      2,
      5,
      WHITE);
   }
-  display.fillCircle(7+6 + frame.plr_pos[0]*11,
-     7+6 + frame.plr_pos[1]*11,
+  display.fillCircle(9+6 + frame.plr_pos[0]*11,
+     9+6 + frame.plr_pos[1]*11,
      5,
      RED);
   if(frame.key_picked){
-    display.fillCircle(7+6 + frame.plr_pos[0]*11,
-     7+6 + frame.plr_pos[1]*11,
+    display.fillCircle(9+6 + frame.plr_pos[0]*11,
+     9+6 + frame.plr_pos[1]*11,
      2,
      YELLOW);
   }
   int offset = frame.txt.length()/2 ;
-  display.setCursor( 63 - offset , 15 );
+  display.setCursor( 63 - offset*6 , 15 );
   display.print(frame.txt);
 
 }
@@ -188,11 +202,6 @@ void level1(){
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 1";
   render(*frame_ptr);
-
-  int x=
-  while(!reached()){
-    
-  }
   
 }
 
