@@ -138,6 +138,7 @@ void render( frame frame ){
   int offset = frame.txt.length()/2 ;
   display.setCursor( 63 - offset , 15 );
   display.print(frame.txt);
+  
 
 }
 
@@ -188,11 +189,37 @@ void level1(){
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 1";
   render(*frame_ptr);
+}
 
-  int x=
-  while(!reached()){
-    
-  }
+void level2(){
+  frame *frame_ptr  = initFrame();
+  frame_ptr->n_platforms = 5;
+  frame_ptr->platforms[0][0]= 0;frame_ptr->platforms[0][1]= 11;frame_ptr->platforms[0][2]= 11;frame_ptr->platforms[0][3]= 1;
+  frame_ptr->platforms[1][0]= 0;frame_ptr->platforms[1][1]= 7;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[2][0]= 4;frame_ptr->platforms[2][1]= 5;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
+  frame_ptr->platforms[3][0]= 6;frame_ptr->platforms[3][1]= 8;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
+  frame_ptr->platforms[4][0]= 10;frame_ptr->platforms[4][1]= 9;frame_ptr->platforms[4][2]= 2;frame_ptr->platforms[4][3]= 1;
+  
+  frame_ptr->n_obstacles = 0;
+  frame_ptr->n_boxes = 0;
+  
+  frame_ptr->n_switches = 4;
+  frame_ptr->switches[0][0] = 1;frame_ptr->switches[0][1] =6; //above platform 1
+  frame_ptr->switches[1][0] = 5;frame_ptr->switches[1][1] =4; //above platform 2
+  frame_ptr->switches[2][0] = 6;frame_ptr->switches[2][1] =7; //above platform 3
+  frame_ptr->switches[3][0] = 11;frame_ptr->switches[3][1] =8; //above platform 4
+  
+  frame_ptr->key_visible = true;
+  frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
+  
+  frame_ptr->door_visible = true;
+  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
+  
+  frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
+  frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
+  frame_ptr->txt = "Level 2";
+  render(*frame_ptr);
+
   
 }
 
