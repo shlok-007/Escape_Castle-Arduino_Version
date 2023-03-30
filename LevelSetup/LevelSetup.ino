@@ -306,7 +306,7 @@ bool isDead();
 void render( frame frame ){
 
   //rendering platforms
-  display.clearScreen();
+  display.fillScreen(ILI9341_BLACK);
   //drawing borders
   display.fillRect(2,  1, 128,  1, CYAN);
   display.fillRect(2,  2,   1, 125, CYAN);
@@ -349,12 +349,22 @@ void render( frame frame ){
      BROWN);
   }
   for(i=0;i<frame.n_switches;i++){
-    display.fillRect(
-     x_offset+ 2 + frame.switches[i][0]*11,
-     y_offset+ 5 + frame.switches[i][1]*11,
-     2,
-     5,
-     WHITE);
+    if(frame.switches[i][2]==1){
+      display.fillRect(
+      x_offset+ 2 + frame.switches[i][0]*11,
+      y_offset+ 5 + frame.switches[i][1]*11,
+      2,
+      5,
+      WHITE);
+    }
+    else{
+      display.fillRect(
+      x_offset+ 2 + frame.switches[i][0]*11,
+      y_offset+ 5 + frame.switches[i][1]*11,
+      2,
+      5,
+      BLUE);
+    }
   }
   display.fillCircle(
      x_offset+6 + frame.plr_pos[0]*11,
@@ -369,10 +379,11 @@ void render( frame frame ){
      YELLOW);
   }
   int offset = frame.txt.length()/2 ;
-  display.setCursor( 63 - offset*6 , 5 );
+  display.setCursor( 63 - offset*6 , 15 );
   display.print(frame.txt);
   
 }
+
 
 void updateScreen();
 
@@ -389,7 +400,7 @@ frame *initFrame(){
   frame_ptr->platforms = (int (*)[4])malloc(N*4*sizeof(int));
   frame_ptr->obstacles = (int (*)[2])malloc(N*2*sizeof(int));
   frame_ptr->boxes = (int (*)[2])malloc(N*2*sizeof(int));
-  frame_ptr->switches = (int (*)[2])malloc(N*2*sizeof(int));
+  frame_ptr->switches = (int (*)[3])malloc(N*3*sizeof(int));
   frame_ptr->key_pos = (float *)malloc(2*sizeof(float));
   frame_ptr->door_pos = (int *)malloc(2*sizeof(int));
   frame_ptr->plr_pos = (float *)malloc(2*sizeof(float));
@@ -422,7 +433,6 @@ void level1(){
   }
 }
 
-
 void level2(){
   frame *frame_ptr  = initFrame();
   frame_ptr->n_platforms = 5;
@@ -430,7 +440,7 @@ void level2(){
   frame_ptr->platforms[1][0]= 0;frame_ptr->platforms[1][1]= 7;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
   frame_ptr->platforms[2][0]= 4;frame_ptr->platforms[2][1]= 5;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
   frame_ptr->platforms[3][0]= 6;frame_ptr->platforms[3][1]= 8;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
-  frame_ptr->platforms[4][0]= 10;frame_ptr->platforms[4][1]= 9;frame_ptr->platforms[4][2]= 2;frame_ptr->platforms[4][3]= 1;
+  frame_ptr->platforms[4][0]= 9;frame_ptr->platforms[4][1]= 9;frame_ptr->platforms[4][2]= 2;frame_ptr->platforms[4][3]= 1;
   
   frame_ptr->n_obstacles = 0;
   frame_ptr->n_boxes = 0;
@@ -439,10 +449,10 @@ void level2(){
   frame_ptr->switches[0][0] = 1;frame_ptr->switches[0][1] =6; frame_ptr->switches[0][2] =0; //above platform 1
   frame_ptr->switches[1][0] = 5;frame_ptr->switches[1][1] =4; frame_ptr->switches[1][2] =0;//above platform 2
   frame_ptr->switches[2][0] = 6;frame_ptr->switches[2][1] =7; frame_ptr->switches[2][2] =0;//above platform 3
-  frame_ptr->switches[3][0] = 11;frame_ptr->switches[3][1] =8; frame_ptr->switches[3][2] =0;//above platform 4
+  frame_ptr->switches[3][0] = 10;frame_ptr->switches[3][1] =8; frame_ptr->switches[3][2] =0;//above platform 4
   
-  frame_ptr->key_visible = true;
-  frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
+  frame_ptr->key_visible = false;
+  frame_ptr->key_pos[0] = 4;frame_ptr->key_pos[1] = 4;
   
   frame_ptr->door_visible = true;
   frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
@@ -450,39 +460,43 @@ void level2(){
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 2: not all are correct";
-  render(*frame_ptr);
-
+  frame_ptr->plr_pos[0]=1;
+  frame_ptr->plr_pos[1]=2;
   // switch state assumed to be 0 and 1
   while(1){
+    // applyPhysics(frame_ptr);
+    frame_ptr->plr_pos[0]++;
+    frame_ptr->plr_pos[1]++;
     // record_pos takes the position after the click of the button
     int record_pos_x=frame_ptr->plr_pos[0], record_pos_y=frame_ptr->plr_pos[1];
-    int total_on_state=0;
-    for(int i=0;i<4;i++){ // updates the switch state
-      if(record_pos_x==frame_ptr->switches[i][0] && record_pos_y==frame_ptr->switches[i][1]){
-        frame_ptr->switches[i][2]=1-frame_ptr->switches[i][2];
+    if(frame_ptr->key_visible==0){
+      for(int i=0;i<4;i++){ // updates the switch state
+        if(record_pos_x==frame_ptr->switches[i][0] && record_pos_y==frame_ptr->switches[i][1]){
+          frame_ptr->switches[i][2]=1-frame_ptr->switches[i][2];
+        }
       }
-      total_on_state+=frame_ptr->switches[i][2];
     }
-    if(total_on_state>1)
-      continue;
-    else if(frame_ptr->switches[2][2]){
-      frame_ptr->key_visible=1;
-      // take key
+    if(frame_ptr->switches[2][2] && !frame_ptr->key_picked){
+      frame_ptr->key_visible = true;
+      frame_ptr->plr_pos[0]=4;
+      frame_ptr->plr_pos[1]=4;
+    }
+
+    if(frame_ptr->key_visible==true){
       int record_keypos_x=frame_ptr->plr_pos[0], record_keypos_y=frame_ptr->plr_pos[1];
       if(record_keypos_x==frame_ptr->key_pos[0] && record_keypos_y==frame_ptr->key_pos[1]){
-        key_picked=true;
+        frame_ptr->key_picked=true;
+        frame_ptr->key_visible = false;
       }
     }
     
-    int record_doorPos_x=frame_ptr->plr_pos[0], record_doorPos_y=frame_ptr->plr_pos[1];
-    if(key_picked==true && record_doorPos_x==door_pos[0] && record_doorPos_y==door_pos[1]){
-      // Level Completed
+    if(frame_ptr->key_picked==true){
+      int record_doorPos_x=frame_ptr->plr_pos[0], record_doorPos_y=frame_ptr->plr_pos[1];
+      if(record_doorPos_x==frame_ptr->door_pos[0] && record_doorPos_y==frame_ptr->door_pos[1]){
       reachedDoor();
-    }   
-  }
-
-  while(1){
-    applyPhysics(frame_ptr);
+      break;
+      }   
+    }
     render(*frame_ptr);
   }
 }
