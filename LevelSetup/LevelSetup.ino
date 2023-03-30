@@ -422,23 +422,24 @@ void level1(){
   }
 }
 
+
 void level2(){
   frame *frame_ptr  = initFrame();
   frame_ptr->n_platforms = 5;
-  frame_ptr->platforms[0][0]= 0;frame_ptr->platforms[0][1]= 10;frame_ptr->platforms[0][2]= 11;frame_ptr->platforms[0][3]= 1;
-  frame_ptr->platforms[1][0]= 0;frame_ptr->platforms[1][1]= 6;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
-  frame_ptr->platforms[2][0]= 4;frame_ptr->platforms[2][1]= 4;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
-  frame_ptr->platforms[3][0]= 6;frame_ptr->platforms[3][1]= 7;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
-  frame_ptr->platforms[4][0]= 10;frame_ptr->platforms[4][1]= 8;frame_ptr->platforms[4][2]= 1;frame_ptr->platforms[4][3]= 1;
+  frame_ptr->platforms[0][0]= 0;frame_ptr->platforms[0][1]= 11;frame_ptr->platforms[0][2]= 11;frame_ptr->platforms[0][3]= 1;
+  frame_ptr->platforms[1][0]= 0;frame_ptr->platforms[1][1]= 7;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[2][0]= 4;frame_ptr->platforms[2][1]= 5;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
+  frame_ptr->platforms[3][0]= 6;frame_ptr->platforms[3][1]= 8;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
+  frame_ptr->platforms[4][0]= 10;frame_ptr->platforms[4][1]= 9;frame_ptr->platforms[4][2]= 2;frame_ptr->platforms[4][3]= 1;
   
   frame_ptr->n_obstacles = 0;
   frame_ptr->n_boxes = 0;
   
   frame_ptr->n_switches = 4;
-  frame_ptr->switches[0][0] = 0;frame_ptr->switches[0][1] =5; //above platform 1
-  frame_ptr->switches[1][0] = 4;frame_ptr->switches[1][1] =3; //above platform 2
-  frame_ptr->switches[2][0] = 5;frame_ptr->switches[2][1] =6; //above platform 3
-  frame_ptr->switches[3][0] = 10;frame_ptr->switches[3][1] =7; //above platform 4
+  frame_ptr->switches[0][0] = 1;frame_ptr->switches[0][1] =6; frame_ptr->switches[0][2] =0; //above platform 1
+  frame_ptr->switches[1][0] = 5;frame_ptr->switches[1][1] =4; frame_ptr->switches[1][2] =0;//above platform 2
+  frame_ptr->switches[2][0] = 6;frame_ptr->switches[2][1] =7; frame_ptr->switches[2][2] =0;//above platform 3
+  frame_ptr->switches[3][0] = 11;frame_ptr->switches[3][1] =8; frame_ptr->switches[3][2] =0;//above platform 4
   
   frame_ptr->key_visible = true;
   frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
@@ -448,13 +449,42 @@ void level2(){
   
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
-  frame_ptr->txt = "Level 2";
+  frame_ptr->txt = "Level 2: not all are correct";
+  render(*frame_ptr);
+  // switch state assumed to be 0 and 1
+  
+  while(1){
+    // record_pos takes the position after the click of the button
+    int record_pos_x, record_pos_y;
+    int total_on_state=0;
+    for(int i=0;i<4;i++){ // updates the switch state
+      if(record_pos_x==frame_ptr->switches[i][0] && record_pos_y==frame_ptr->switches[i][1]){
+        frame_ptr->switches[i][2]=1-frame_ptr->switches[i][2];
+      }
+      total_on_state+=frame_ptr->switches[i][2];
+    }
+    if(total_on_state>1)
+      continue;
+    else if(frame_ptr->switches[2][2]){
+      frame_ptr->key_visible=1;
+      // take key
+      int record_keypos_x, record_keypos_y;
+      if(record_keypos_x==frame_ptr->key_pos[0] && record_keypos_y==frame_ptr->key_pos[1]){
+        key_picked=true;
+      }
+    }
+    
+    int record_doorPos_x, record_doorPos_y;
+    if(key_picked==true && record_doorPos_x==door_pos[0] && record_doorPos_y==door_pos[1]){
+      // Level Completed
+      reachedDoor();
+    }   
+  }
+
   while(1){
     applyPhysics(frame_ptr);
     render(*frame_ptr);
   }
-
-  
 }
 
 void level4(){
