@@ -54,7 +54,7 @@ typedef struct Frame{
   (*boxes)[2],
   n_switches,
   // switches[N][2],
-  (*switches)[2],
+  (*switches)[3],
   // door_pos[2],
   *door_pos;
   // key_pos[2], 
@@ -145,7 +145,7 @@ void setup() {
   delay(1000);
   display.clearScreen();
 
-  String title = "Tricky Castle", subtitle = " Can you escape the   castle ??";
+  String title = "Escape Castle", subtitle = " Can you escape the   castle ??";
   display.setTextSize(3);
   display.setCursor( 5 , 20 );
   display.setTextColor(BROWN);
@@ -163,7 +163,7 @@ void setup() {
 }
 
 void loop(){
-  level1();
+  level2();
   while (true);
 
 }
@@ -311,7 +311,7 @@ bool isDead();
 void render( frame frame ){
 
   //rendering platforms
-  display.fillScreen(ILI9341_BLACK);
+  display.clearScreen();;
   //drawing borders
   display.fillRect(2,  1, 128,  1, CYAN);
   display.fillRect(2,  2,   1, 125, CYAN);
@@ -413,7 +413,7 @@ frame *initFrame(){
   return frame_ptr;
 }
 
-void level1(){
+void testLevel1(){
   frame *frame_ptr  = initFrame();
   frame_ptr->n_platforms = 7;
   int arr1[] = {3,4,4,1};
@@ -424,14 +424,6 @@ void level1(){
   frame_ptr->platforms[2][0]= 1;frame_ptr->platforms[2][1]= 6;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
   frame_ptr->platforms[3][0]= 8;frame_ptr->platforms[3][1]= 6;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
   frame_ptr->platforms[6][0]= 4;frame_ptr->platforms[6][1]= 4;frame_ptr->platforms[6][2]= 2;frame_ptr->platforms[6][3]= 1;
-  // frame_ptr->n_obstacles = 1;
-  // frame_ptr->obstacles[0][0] = 3;frame_ptr->obstacles[0][1]=5;
-  // frame_ptr->n_boxes = 1;
-  // frame_ptr->boxes[0][0] = 5;frame_ptr->boxes[0][1] = 3;
-  // frame_ptr->n_switches = 1;
-  // frame_ptr->switches[0][0] = 9;frame_ptr->switches[0][1] =9;
-  // frame_ptr->key_visible = true;
-  // frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
   frame_ptr->door_visible = true;
   frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
@@ -446,27 +438,6 @@ void level1(){
        reachedDoor();
     }
   }
-  // frame_ptr->n_platforms = 2;
-  // int arr1[] = {3,4,4,1};
-  // frame_ptr->platforms[0][0]= 3;frame_ptr->platforms[0][1]= 10;frame_ptr->platforms[0][2]= 4;frame_ptr->platforms[0][3]= 1;
-  // frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 3;frame_ptr->platforms[1][3]= 1;
-  // frame_ptr->n_obstacles = 1;
-  // frame_ptr->obstacles[0][0] = 3;frame_ptr->obstacles[0][1]=5;
-  // frame_ptr->n_boxes = 1;
-  // frame_ptr->boxes[0][0] = 5;frame_ptr->boxes[0][1] = 3;
-  // frame_ptr->n_switches = 1;
-  // frame_ptr->switches[0][0] = 9;frame_ptr->switches[0][1] =9;
-  // frame_ptr->key_visible = true;
-  // frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
-  // frame_ptr->door_visible = true;
-  // frame_ptr->door_pos[0] = 9;frame_ptr->door_pos[1] = 9;
-  // frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
-  // frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
-  // frame_ptr->txt = "Your place is here:";
-  // while(1){
-  //   applyPhysics(frame_ptr);
-  //   render(*frame_ptr);
-  // }
 }
 
 void level2(){
@@ -500,9 +471,10 @@ void level2(){
   frame_ptr->plr_pos[1]=2;
   // switch state assumed to be 0 and 1
   while(1){
-    // applyPhysics(frame_ptr);
-    frame_ptr->plr_pos[0]++;
-    frame_ptr->plr_pos[1]++;
+    applyPhysics(frame_ptr);
+    // render()
+    // frame_ptr->plr_pos[0]++;
+    // frame_ptr->plr_pos[1]++;
     // record_pos takes the position after the click of the button
     int record_pos_x=frame_ptr->plr_pos[0], record_pos_y=frame_ptr->plr_pos[1];
     if(frame_ptr->key_visible==0){
@@ -514,8 +486,8 @@ void level2(){
     }
     if(frame_ptr->switches[2][2] && !frame_ptr->key_picked){
       frame_ptr->key_visible = true;
-      frame_ptr->plr_pos[0]=4;
-      frame_ptr->plr_pos[1]=4;
+      // frame_ptr->plr_pos[0]=4;
+      // frame_ptr->plr_pos[1]=4;
     }
 
     if(frame_ptr->key_visible==true){
@@ -536,42 +508,4 @@ void level2(){
     render(*frame_ptr);
   }
 }
-
-void level4(){
-  frame *frame_ptr = initFrame();
-   frame_ptr->n_platforms = 7;
-    
-  frame_ptr->platforms[0][0]= 1;frame_ptr->platforms[0][1]= 2;frame_ptr->platforms[0][2]= 2;frame_ptr->platforms[0][3]= 1;
-  frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
-  frame_ptr->platforms[2][0]= 1;frame_ptr->platforms[2][1]= 6;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
-  frame_ptr->platforms[3][0]= 8;frame_ptr->platforms[3][1]= 6;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
-  frame_ptr->platforms[4][0]= 4;frame_ptr->platforms[4][1]= 4;frame_ptr->platforms[4][2]= 2;frame_ptr->platforms[4][3]= 1;
-  frame_ptr->platforms[5][0]= 3;frame_ptr->platforms[5][1]= 9;frame_ptr->platforms[5][2]= 4;frame_ptr->platforms[5][3]= 1;
-  frame_ptr->platforms[6][0]= 0;frame_ptr->platforms[6][1]= 10;frame_ptr->platforms[6][2]= 11;frame_ptr->platforms[6][3]= 1;
-
-  frame_ptr->plr_pos[0] = 8;frame_ptr->plr_pos[1] = 9;
-  frame_ptr->init_plr_pos = 8;frame_ptr->init_plr_pos = 9;
-  frame_ptr->txt = "Your place is here:";
-
-  frame_ptr->door_visible = false;
-  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 9;
-
-  while(1)
-  {
-    applyPhysics(frame_ptr);
-    render(*frame_ptr);
-    
-    if((frame_ptr->plr_pos[0]==7 || frame_ptr->plr_pos[0]==8) && (frame_ptr->plr_pos[1]==2))
-    {
-       frame_ptr->door_visible=true;
-    }
-
-    if(frame_ptr->door_visible==true && frame_ptr->plr_pos[0]==10 && frame_ptr->plr_pos[1]==10)
-    {
-       reachedDoor();
-    }
-  }
-}
-
-
 
