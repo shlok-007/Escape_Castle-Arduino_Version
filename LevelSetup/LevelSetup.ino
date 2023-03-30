@@ -29,7 +29,7 @@ float yAccel = 0; // Accelerometer reading for y-axis
 float zAccel = 0; // Accelerometer reading for z-axis
 int accelThreshold = 50; // Threshold for detecting motion
 int jumpYThreshold = 80; // Threshold for detecting jump
-int jumpZThreshold = 40; // Threshold for detecting jump
+int jumpZThreshold = 50; // Threshold for detecting jump
 // int jumpDuration = 500; // Duration of jump (in milliseconds)
 float gravity = 0.5; // Acceleration due to gravity
 float jumpVelocity = 2; // Initial jump velocity
@@ -81,13 +81,13 @@ float pi = 3.1415926;
 
 void setup() {
   display.begin();
-  display.setTextSize(3);
+  display.setTextSize(1);
   display.setCursor( 5 , 20 );
   display.println("Calibrating Accelerometer...");
 
   // Calibrate accelerometer
   float xsum=0, ysum = 0, zsum = 0;
-  int calib_loops = 5000;
+  int calib_loops = 1000;
   Wire.begin();
   Wire.beginTransmission(ADXL345); // Start communicating with the device
   Wire.write(0x2D); // Access/ talk to POWER_CTL Register - 0x2D
@@ -135,13 +135,18 @@ void setup() {
   delay(10);
 
   display.clearScreen();
-  display.setCursor( 5 , 20 );
+  display.setCursor( 5 , 10 );
   display.println("Calibration Complete :D");
-  display.println(zcalib);
+  display.print(xcalib);
+  display.print(" ");
+  display.print(ycalib);
+  display.print(" ");
+  display.print(zcalib);
   delay(1000);
   display.clearScreen();
 
   String title = "Tricky Castle", subtitle = " Can you escape the   castle ??";
+  display.setTextSize(3);
   display.setCursor( 5 , 20 );
   display.setTextColor(BROWN);
   display.println(title);
@@ -158,7 +163,7 @@ void setup() {
 }
 
 void loop(){
-  level1();
+  level2();
   while (true);
 
 }
@@ -169,7 +174,9 @@ bool checkCeilCollision(frame *frame){
 }
 
 bool checkFloorCollision(frame *frame){
-  if(frame->plr_pos[1] >= 11) return true;
+  if(frame->plr_pos[1] >= 10){
+    frame->plr_pos[1]=10;
+    return true;}
   return false;
 }
 
@@ -184,7 +191,7 @@ bool checkJumpCollision(frame *frame){
     pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
     pltY = frame->platforms[i][1] + frame->platforms[i][3];
 
-    if( plrRx >= pltLx && plrLx <= pltRx && plrY >= pltY ) return true;
+    if( plrRx > pltLx && plrLx < pltRx && plrY >= pltY ) return true;
   }
   return false;
 }
@@ -195,11 +202,13 @@ bool checkFallCollision(frame *frame){
   for(int i=0; i<frame->n_platforms; i++){
     plrLx = frame->plr_pos[0], 
     plrRx = frame->plr_pos[0] + 1, 
-    plrY = frame->plr_pos[1];
+    plrY = frame->plr_pos[1]+1;
     pltLx = frame->platforms[i][0], 
     pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
-    pltY = frame->platforms[i][1] + frame->platforms[i][3];
-    if( plrRx >= pltLx && plrLx <= pltRx && plrY >= pltY ) return true;
+    pltY = frame->platforms[i][1];
+    if( plrRx > pltLx && plrLx < pltRx && plrY >= pltY ) {
+      frame->plr_pos[1]=pltY-1;  
+      return true;}
   }
   return false;
 }
@@ -210,7 +219,7 @@ bool checkLeftWallCollision(frame *frame){
 }
 
 bool checkRightWallCollision(frame *frame){
-  if(frame->plr_pos[0] >= 11) return true;
+  if(frame->plr_pos[0] >= 10) return true;
   return false;
 }
 
@@ -224,7 +233,7 @@ bool checkLeftCollision(frame *frame){
     pltTy = frame->platforms[i][1], 
     pltBy = frame->platforms[i][1] + frame->platforms[i][3], 
     pltX = frame->platforms[i][0];
-    if( plrBy >= pltTy && plrTy <= pltBy && plrX >= pltX ) return true;
+    if( plrBy > pltTy && plrTy < pltBy && plrX >= pltX ) return true;
   }
   return false;
 }
@@ -239,7 +248,7 @@ bool checkRightCollision(frame *frame){
     pltTy = frame->platforms[i][1], 
     pltBy = frame->platforms[i][1] + frame->platforms[i][3], 
     pltX = frame->platforms[i][0] + frame->platforms[i][2];
-    if( plrBy >= pltTy && plrTy <= pltBy && plrX <= pltX ) return true;
+    if( plrBy > pltTy && plrTy < pltBy && plrX <= pltX ) return true;
   }
   return false;
 }
@@ -255,30 +264,31 @@ void applyPhysics(frame *frame){
   zAccel -= 256;
 
   if(xAccel > accelThreshold){
-    if(!checkRightCollision(frame)){
-      frame->plr_pos[0] += xVelocity;
-      frame->plr_pos[0] = 0;}
+    if(!checkRightCollision(frame)) frame->plr_pos[0] += xVelocity;
+    else if(checkRightWallCollision(frame))    frame->plr_pos[0] = 0;
   }
   else if(xAccel < -accelThreshold){
-    if(!checkLeftCollision(frame)){
-      frame->plr_pos[0] -= xVelocity;
-      frame->plr_pos[0] = 10;}
+    if(!checkLeftCollision(frame))  frame->plr_pos[0] -= xVelocity;
+    else if(checkLeftWallCollision(frame)) frame->plr_pos[0] = 10;
   }
-  if(zAccel > jumpZThreshold && yAccel < -jumpYThreshold && checkFallCollision(frame) && checkFloorCollision(frame))  yVelocity = jumpVelocity;
-  else if(!checkFallCollision(frame) && !checkFloorCollision(frame))  yVelocity -= gravity;
-  else if(checkFallCollision(frame) || checkFloorCollision(frame))  yVelocity = 0;
+  if(zAccel > jumpZThreshold && (checkFallCollision(frame) || checkFloorCollision(frame)))  yVelocity = jumpVelocity;
+  else{
+    if(!checkFallCollision(frame) && !checkFloorCollision(frame))  yVelocity -= gravity;
+    else if(checkFallCollision(frame) || checkFloorCollision(frame))  yVelocity = 0;}
 
-  if(yVelocity > 0){
+  if(yVelocity >= 0){
     if(!checkCeilCollision(frame) && !checkJumpCollision(frame)){
       frame->plr_pos[1] -= yVelocity;}
     else{
       yVelocity = -yVelocity/2;
       if(!checkFallCollision(frame) && !checkFloorCollision(frame)) frame->plr_pos[1] -= yVelocity;
+      else  yVelocity = 0;
       }
   }
   else if(yVelocity < 0){
     if(!checkFallCollision(frame) && !checkFloorCollision(frame)){
-      frame->plr_pos[1] += yVelocity;}
+      frame->plr_pos[1] -= yVelocity;
+      }
     else  yVelocity = 0;
   }
 
@@ -356,7 +366,7 @@ void render( frame frame ){
      YELLOW);
   }
   int offset = frame.txt.length()/2 ;
-  display.setCursor( 63 - offset*6 , 15 );
+  display.setCursor( 63 - offset*6 , 5 );
   display.print(frame.txt);
   
 }
@@ -389,7 +399,7 @@ void level1(){
   frame_ptr->n_platforms = 2;
   int arr1[] = {3,4,4,1};
   frame_ptr->platforms[0][0]= 3;frame_ptr->platforms[0][1]= 10;frame_ptr->platforms[0][2]= 4;frame_ptr->platforms[0][3]= 1;
-  frame_ptr->platforms[1][0]= 2;frame_ptr->platforms[1][1]= 1;frame_ptr->platforms[1][2]= 3;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 3;frame_ptr->platforms[1][3]= 1;
   frame_ptr->n_obstacles = 1;
   frame_ptr->obstacles[0][0] = 3;frame_ptr->obstacles[0][1]=5;
   frame_ptr->n_boxes = 1;
@@ -402,7 +412,7 @@ void level1(){
   frame_ptr->door_pos[0] = 9;frame_ptr->door_pos[1] = 9;
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
-  frame_ptr->txt = "Level 1";
+  frame_ptr->txt = "Your place is here:";
   while(1){
     applyPhysics(frame_ptr);
     render(*frame_ptr);
@@ -436,7 +446,10 @@ void level2(){
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 2";
-  render(*frame_ptr);
+  while(1){
+    applyPhysics(frame_ptr);
+    render(*frame_ptr);
+  }
 
   
 }
