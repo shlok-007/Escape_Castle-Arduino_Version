@@ -28,12 +28,13 @@ float xAccel = 0; // Accelerometer reading for x-axis
 float yAccel = 0; // Accelerometer reading for y-axis
 float zAccel = 0; // Accelerometer reading for z-axis
 int accelThreshold = 50; // Threshold for detecting motion
-int jumpThreshold = 80; // Threshold for detecting jump
+int jumpYThreshold = 80; // Threshold for detecting jump
+int jumpZThreshold = 40; // Threshold for detecting jump
 // int jumpDuration = 500; // Duration of jump (in milliseconds)
 float gravity = 0.5; // Acceleration due to gravity
 float jumpVelocity = 2; // Initial jump velocity
 float yVelocity = 0; // Velocity on y-axis
-float xVelocity = 0.5; // Velocity on x-axis
+float xVelocity = 1; // Velocity on x-axis
 
 // Define character variables
 // int characterVelocityX = 0; // Character velocity on x-axis
@@ -85,7 +86,7 @@ void setup() {
   display.println("Calibrating Accelerometer...");
 
   // Calibrate accelerometer
-  float ysum = 0, zsum = 0;
+  float xsum=0, ysum = 0, zsum = 0;
   int calib_loops = 5000;
   Wire.begin();
   Wire.beginTransmission(ADXL345); // Start communicating with the device
@@ -103,7 +104,7 @@ void setup() {
     Wire.write(0x32); // Start with register 0x32 (ACCEL_XOUT_H)
     Wire.endTransmission(false);
     Wire.requestFrom(ADXL345, 6, true); // Read 6 registers total, each axis value is stored in 2 registers
-    xAccel = ( Wire.read() | Wire.read() << 8); // X-axis value
+    xsum += ( Wire.read() | Wire.read() << 8); // X-axis value
     // X_out = X_out / 256; //For a range of +-2g, we need to divide the raw values by 256, according to the datasheet
     ysum += ( Wire.read() | Wire.read() << 8); // Y-axis value
     // Y_out = Y_out / 256;
@@ -112,14 +113,14 @@ void setup() {
   }
 
 
-  int ycalib = -(ysum/(calib_loops*4)), zcalib = -((zsum/calib_loops)-256)/4 ;
+  int xcalib = -(xsum/(calib_loops*4)), ycalib = -(ysum/(calib_loops*4)), zcalib = -((zsum/calib_loops)-256)/4 ;
   //Off-set Calibration
   //X-axis
-  // Wire.beginTransmission(ADXL345);
-  // Wire.write(0x1E);
-  // Wire.write(xcalib);
-  // Wire.endTransmission();
-  // delay(10);
+  Wire.beginTransmission(ADXL345);
+  Wire.write(0x1E);
+  Wire.write(xcalib);
+  Wire.endTransmission();
+  delay(10);
   //Y-axis
   Wire.beginTransmission(ADXL345);
   Wire.write(0x1F);
@@ -157,7 +158,7 @@ void setup() {
 }
 
 void loop(){
-  level2();
+  level1();
   while (true);
 
 }
@@ -176,10 +177,10 @@ bool checkJumpCollision(frame *frame){
   float plrLx, plrRx, plrY;
   int pltLx, pltRx, pltY;
   for(int i=0; i<frame->n_platforms; i++){
-    float plrLx = frame->plr_pos[0], 
+    plrLx = frame->plr_pos[0], 
     plrRx = frame->plr_pos[0] + 1, 
     plrY = frame->plr_pos[1];
-    int pltLx = frame->platforms[i][0], 
+    pltLx = frame->platforms[i][0], 
     pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
     pltY = frame->platforms[i][1] + frame->platforms[i][3];
 
@@ -192,10 +193,10 @@ bool checkFallCollision(frame *frame){
   float plrLx, plrRx, plrY;
   int pltLx, pltRx, pltY;
   for(int i=0; i<frame->n_platforms; i++){
-    float plrLx = frame->plr_pos[0], 
+    plrLx = frame->plr_pos[0], 
     plrRx = frame->plr_pos[0] + 1, 
     plrY = frame->plr_pos[1];
-    int pltLx = frame->platforms[i][0], 
+    pltLx = frame->platforms[i][0], 
     pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
     pltY = frame->platforms[i][1] + frame->platforms[i][3];
     if( plrRx >= pltLx && plrLx <= pltRx && plrY >= pltY ) return true;
@@ -213,7 +214,35 @@ bool checkRightWallCollision(frame *frame){
   return false;
 }
 
-bool checkLeftCollision(frame *frame);
+bool checkLeftCollision(frame *frame){
+  float plrTy, plrBy, plrX;
+  int pltTy, pltBy, pltX;
+  for(int i=0; i<frame->n_platforms; i++){
+    plrTy = frame->plr_pos[1], 
+    plrBy = frame->plr_pos[1] + 1, 
+    plrX = frame->plr_pos[0] + 1;
+    pltTy = frame->platforms[i][1], 
+    pltBy = frame->platforms[i][1] + frame->platforms[i][3], 
+    pltX = frame->platforms[i][0];
+    if( plrBy >= pltTy && plrTy <= pltBy && plrX >= pltX ) return true;
+  }
+  return false;
+}
+
+bool checkRightCollision(frame *frame){
+  float plrTy, plrBy, plrX;
+  int pltTy, pltBy, pltX;
+  for(int i=0; i<frame->n_platforms; i++){
+    plrTy = frame->plr_pos[1], 
+    plrBy = frame->plr_pos[1] + 1, 
+    plrX = frame->plr_pos[0];
+    pltTy = frame->platforms[i][1], 
+    pltBy = frame->platforms[i][1] + frame->platforms[i][3], 
+    pltX = frame->platforms[i][0] + frame->platforms[i][2];
+    if( plrBy >= pltTy && plrTy <= pltBy && plrX <= pltX ) return true;
+  }
+  return false;
+}
 
 void applyPhysics(frame *frame){
   Wire.beginTransmission(ADXL345);
@@ -225,20 +254,33 @@ void applyPhysics(frame *frame){
   zAccel = ( Wire.read() | Wire.read() << 8); // Z-axis value
   zAccel -= 256;
 
-  if(yAccel < -accelThreshold)  frame->plr_pos[0] += xVelocity;
-  else if(yAccel > accelThreshold) frame->plr_pos[0] -= xVelocity;
-
-  if(abs(zAccel) > jumpThreshold)  yVelocity = jumpVelocity;
-
-  if(yVelocity>0 && (checkCeilCollision(frame) || checkJumpCollision(frame))){
-    yVelocity = -yVelocity/2;
+  if(xAccel > accelThreshold){
+    if(!checkRightCollision(frame)){
+      frame->plr_pos[0] += xVelocity;
+      frame->plr_pos[0] = 0;}
   }
-
-  if(yVelocity<0 && (checkFloorCollision(frame) || checkFallCollision(frame))){
-    yVelocity = 0;
+  else if(xAccel < -accelThreshold){
+    if(!checkLeftCollision(frame)){
+      frame->plr_pos[0] -= xVelocity;
+      frame->plr_pos[0] = 10;}
   }
+  if(zAccel > jumpZThreshold && yAccel < -jumpYThreshold && checkFallCollision(frame) && checkFloorCollision(frame))  yVelocity = jumpVelocity;
+  else if(!checkFallCollision(frame) && !checkFloorCollision(frame))  yVelocity -= gravity;
+  else if(checkFallCollision(frame) || checkFloorCollision(frame))  yVelocity = 0;
 
-  frame->plr_pos[1] += yVelocity;
+  if(yVelocity > 0){
+    if(!checkCeilCollision(frame) && !checkJumpCollision(frame)){
+      frame->plr_pos[1] -= yVelocity;}
+    else{
+      yVelocity = -yVelocity/2;
+      if(!checkFallCollision(frame) && !checkFloorCollision(frame)) frame->plr_pos[1] -= yVelocity;
+      }
+  }
+  else if(yVelocity < 0){
+    if(!checkFallCollision(frame) && !checkFloorCollision(frame)){
+      frame->plr_pos[1] += yVelocity;}
+    else  yVelocity = 0;
+  }
 
 }
 
@@ -361,7 +403,10 @@ void level1(){
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 1";
-  render(*frame_ptr);
+  while(1){
+    applyPhysics(frame_ptr);
+    render(*frame_ptr);
+  }
 }
 
 void level2(){
