@@ -296,7 +296,10 @@ void applyPhysics(frame *frame){
 
 bool keyFound();
 
-bool reachedDoor();
+bool reachedDoor(){
+  display.clearScreen();
+  display.print("Stage Cleared");//Might need changes
+}
 
 bool isDead();
 
@@ -452,6 +455,40 @@ void level2(){
   }
 
   
+}
+
+void level4(){
+  frame *frame_ptr = initFrame();
+  frame_ptr = 6;
+    
+  frame_ptr->platforms[0][0]= 0;frame_ptr->platforms[0][1]= 3;frame_ptr->platforms[0][2]= 2;frame_ptr->platforms[0][3]= 1;
+  frame_ptr->platforms[1][0]= 7;frame_ptr->platforms[1][1]= 3;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[2][0]= 0;frame_ptr->platforms[2][1]= 6;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
+  frame_ptr->platforms[3][0]= 7;frame_ptr->platforms[3][1]= 6;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
+  frame_ptr->platforms[4][0]= 4;frame_ptr->platforms[4][1]= 5;frame_ptr->platforms[4][2]= 1;frame_ptr->platforms[4][3]= 1;
+  frame_ptr->platforms[5][0]= 3;frame_ptr->platforms[4][1]= 10;frame_ptr->platforms[4][2]= 3;frame_ptr->platforms[4][3]= 2;
+  frame_ptr->plr_pos[0] = 7;frame_ptr->plr_pos[1] = 10;
+  frame_ptr->init_plr_pos = 7;frame_ptr->init_plr_pos = 10;
+  frame_ptr->txt = "Your place is here:";
+
+  frame_ptr->door_visible = false;
+  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
+
+  while(1)
+  {
+    applyPhysics(frame_ptr);
+    render(*frame_ptr);
+    
+    if((plr_pos[0]==7 || plr_pos[0]==8) && (plr_pos[1]==2))
+    {
+       frame_ptr->door_visible=true;
+    }
+
+    if(frame_ptr->door_visible==true && plr_pos[0]==10 && plr_pos[1]==10)
+    {
+       reachedDoor();
+    }
+  }
 }
 
 
