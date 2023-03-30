@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <TFT_ILI9163C.h>
+#include <Wire.h>
 #include<string.h>
 #include<stdlib.h>
 
@@ -15,8 +16,28 @@
 #define BROWN   0xFB00
 #define DARKBROWN 0x8041
 
+int ADXL345 = 0x53;
+
 const int N = 20,
-          obstacle_radius=4;
+          obstacle_radius=4,
+          x_offset=5,
+          y_offset=4,
+          fps=60;
+
+float xAccel = 0; // Accelerometer reading for x-axis
+float yAccel = 0; // Accelerometer reading for y-axis
+float zAccel = 0; // Accelerometer reading for z-axis
+int accelThreshold = 50; // Threshold for detecting motion
+int jumpThreshold = 80; // Threshold for detecting jump
+// int jumpDuration = 500; // Duration of jump (in milliseconds)
+float gravity = 0.5; // Acceleration due to gravity
+float jumpVelocity = 2; // Initial jump velocity
+float yVelocity = 0; // Velocity on y-axis
+float xVelocity = 0.5; // Velocity on x-axis
+
+// Define character variables
+// int characterVelocityX = 0; // Character velocity on x-axis
+int characterVelocityY = 0; // Character velocity on y-axis
 
 typedef struct Frame{
 
@@ -33,10 +54,12 @@ typedef struct Frame{
   n_switches,
   // switches[N][2],
   (*switches)[2],
+  // door_pos[2],
+  *door_pos;
   // key_pos[2], 
+
+  float 
   *key_pos,
-  // door_pos[2], 
-  *door_pos,
   // plr_pos[2],
   *plr_pos,
   // init_plr_pos[2];
@@ -57,9 +80,68 @@ float pi = 3.1415926;
 
 void setup() {
   display.begin();
+  display.setTextSize(3);
+  display.setCursor( 5 , 20 );
+  display.println("Calibrating Accelerometer...");
+
+  // Calibrate accelerometer
+  float ysum = 0, zsum = 0;
+  int calib_loops = 5000;
+  Wire.begin();
+  Wire.beginTransmission(ADXL345); // Start communicating with the device
+  Wire.write(0x2D); // Access/ talk to POWER_CTL Register - 0x2D
+  // Enable measurement
+  Wire.write(8); // Bit D3 High for measuring enable (8dec -> 0000 1000 binary)
+  Wire.endTransmission();
+  delay(10);
+
+  
+  int i;
+  i=calib_loops;
+  while(i--){  
+    Wire.beginTransmission(ADXL345);
+    Wire.write(0x32); // Start with register 0x32 (ACCEL_XOUT_H)
+    Wire.endTransmission(false);
+    Wire.requestFrom(ADXL345, 6, true); // Read 6 registers total, each axis value is stored in 2 registers
+    xAccel = ( Wire.read() | Wire.read() << 8); // X-axis value
+    // X_out = X_out / 256; //For a range of +-2g, we need to divide the raw values by 256, according to the datasheet
+    ysum += ( Wire.read() | Wire.read() << 8); // Y-axis value
+    // Y_out = Y_out / 256;
+    zsum += ( Wire.read() | Wire.read() << 8); // Z-axis value
+    // Z_out = Z_out / 256;
+  }
+
+
+  int ycalib = -(ysum/(calib_loops*4)), zcalib = -((zsum/calib_loops)-256)/4 ;
+  //Off-set Calibration
+  //X-axis
+  // Wire.beginTransmission(ADXL345);
+  // Wire.write(0x1E);
+  // Wire.write(xcalib);
+  // Wire.endTransmission();
+  // delay(10);
+  //Y-axis
+  Wire.beginTransmission(ADXL345);
+  Wire.write(0x1F);
+  Wire.write(ycalib);
+  Wire.endTransmission();
+  delay(10);
+  //Z-axis
+  Wire.beginTransmission(ADXL345);
+  Wire.write(0x20);
+  Wire.write(zcalib);
+  Wire.endTransmission();
+  delay(10);
+
+  display.clearScreen();
+  display.setCursor( 5 , 20 );
+  display.println("Calibration Complete :D");
+  display.println(zcalib);
+  delay(1000);
+  display.clearScreen();
+
   String title = "Tricky Castle", subtitle = " Can you escape the   castle ??";
   display.setCursor( 5 , 20 );
-  display.setTextSize(3);
   display.setTextColor(BROWN);
   display.println(title);
   display.setTextSize(1);
@@ -68,90 +150,95 @@ void setup() {
   display.fillRect(2,  1, 128,  3, CYAN);
   display.fillRect(2,  4,   3, 123, CYAN);
   display.fillRect(2, 125,128,  3, CYAN);
-  display.fillRect(125, 4,  3, 123, CYAN);
-  delay(500);
+  display.fillRect(125, 4,  5, 123, CYAN);
+  delay(1000);
   display.clearScreen();
 
 }
 
 void loop(){
-  level1();
+  level2();
   while (true);
 
 }
 
+bool checkCeilCollision(frame *frame){
+  if(frame->plr_pos[1] <= 0) return true;
+  return false;
+}
 
-void applyPhysics();
+bool checkFloorCollision(frame *frame){
+  if(frame->plr_pos[1] >= 11) return true;
+  return false;
+}
 
-void render( frame frame ){
+bool checkJumpCollision(frame *frame){
+  float plrLx, plrRx, plrY;
+  int pltLx, pltRx, pltY;
+  for(int i=0; i<frame->n_platforms; i++){
+    float plrLx = frame->plr_pos[0], 
+    plrRx = frame->plr_pos[0] + 1, 
+    plrY = frame->plr_pos[1];
+    int pltLx = frame->platforms[i][0], 
+    pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
+    pltY = frame->platforms[i][1] + frame->platforms[i][3];
 
-  //rendering platforms
-  display.clearScreen();
-  //drawing borders
-  display.fillRect(2,  1, 128,  3, RED);
-  display.fillRect(2,  4,   3, 123, RED);
-  display.fillRect(2, 127,128,  3, RED);
-  display.fillRect(125, 4,  3, 123, RED);
-  // display.drawFastHLine(2, 1, 128, RED);
-  // display.drawFastHLine(2, 127, 128, RED);
-  // display.drawFastVLine(2, 1, 128, RED);
-  // display.drawFastVLine(127, 1, 128, RED);
-  display.drawPixel(2, 1, WHITE);
-  display.drawPixel(2, 127, WHITE);
-  display.drawPixel(128, 1, WHITE);
-  display.drawPixel(2, 1, WHITE);
-  int i;
-  for(i=0;i<frame.n_platforms;i++){
-    display.fillRect(9 + frame.platforms[i][0]*11,
-                    9 + frame.platforms[i][1]*11,
-                    frame.platforms[i][2]*11,
-                    frame.platforms[i][3]*11,
-                    random(0x0010,0xFFFF));
+    if( plrRx >= pltLx && plrLx <= pltRx && plrY >= pltY ) return true;
   }
-  if(frame.key_visible){
-    display.fillCircle(9 + frame.key_pos[0]*11,
-     9 + frame.key_pos[1]*11,
-     2,
-     YELLOW);
+  return false;
+}
+
+bool checkFallCollision(frame *frame){
+  float plrLx, plrRx, plrY;
+  int pltLx, pltRx, pltY;
+  for(int i=0; i<frame->n_platforms; i++){
+    float plrLx = frame->plr_pos[0], 
+    plrRx = frame->plr_pos[0] + 1, 
+    plrY = frame->plr_pos[1];
+    int pltLx = frame->platforms[i][0], 
+    pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
+    pltY = frame->platforms[i][1] + frame->platforms[i][3];
+    if( plrRx >= pltLx && plrLx <= pltRx && plrY >= pltY ) return true;
   }
-  if(frame.door_visible){
-    display.fillRect(9 + frame.door_pos[0]*11,
-     9 + frame.door_pos[1]*11,
-     6,11,DARKBROWN);
+  return false;
+}
+
+bool checkLeftWallCollision(frame *frame){
+  if(frame->plr_pos[0] <= 0) return true;
+  return false;
+}
+
+bool checkRightWallCollision(frame *frame){
+  if(frame->plr_pos[0] >= 11) return true;
+  return false;
+}
+
+bool checkLeftCollision(frame *frame);
+
+void applyPhysics(frame *frame){
+  Wire.beginTransmission(ADXL345);
+  Wire.write(0x32); // Start with register 0x32 (ACCEL_XOUT_H)
+  Wire.endTransmission(false);
+  Wire.requestFrom(ADXL345, 6, true); // Read 6 registers total, each axis value is stored in 2 registers
+  xAccel = ( Wire.read() | Wire.read() << 8); // X-axis value
+  yAccel = ( Wire.read() | Wire.read() << 8); // Y-axis value
+  zAccel = ( Wire.read() | Wire.read() << 8); // Z-axis value
+  zAccel -= 256;
+
+  if(yAccel < -accelThreshold)  frame->plr_pos[0] += xVelocity;
+  else if(yAccel > accelThreshold) frame->plr_pos[0] -= xVelocity;
+
+  if(abs(zAccel) > jumpThreshold)  yVelocity = jumpVelocity;
+
+  if(yVelocity>0 && (checkCeilCollision(frame) || checkJumpCollision(frame))){
+    yVelocity = -yVelocity/2;
   }
-  for(i=0;i<frame.n_obstacles;i++){
-    display.drawCircle(9 + frame.obstacles[i][0]*11,
-     9 + frame.obstacles[i][1]*11,
-     obstacle_radius,
-     MAGENTA);
+
+  if(yVelocity<0 && (checkFloorCollision(frame) || checkFallCollision(frame))){
+    yVelocity = 0;
   }
-  for(i=0;i<frame.n_boxes;i++){
-    display.fillRect(9 + frame.boxes[i][0]*11,
-     9 + frame.boxes[i][1]*11,
-     9,
-     5,
-     BROWN);
-  }
-  for(i=0;i<frame.n_switches;i++){
-    display.fillRect(9+ 2 + frame.switches[i][0]*11,
-     9+ 5 + frame.switches[i][1]*11,
-     2,
-     5,
-     WHITE);
-  }
-  display.fillCircle(9+6 + frame.plr_pos[0]*11,
-     9+6 + frame.plr_pos[1]*11,
-     5,
-     RED);
-  if(frame.key_picked){
-    display.fillCircle(9+6 + frame.plr_pos[0]*11,
-     9+6 + frame.plr_pos[1]*11,
-     2,
-     YELLOW);
-  }
-  int offset = frame.txt.length()/2 ;
-  display.setCursor( 63 - offset*6 , 15 );
-  display.print(frame.txt);
+
+  frame->plr_pos[1] += yVelocity;
 
 }
 
@@ -160,6 +247,79 @@ bool keyFound();
 bool reachedDoor();
 
 bool isDead();
+
+void render( frame frame ){
+
+  //rendering platforms
+  display.clearScreen();
+  //drawing borders
+  display.fillRect(2,  1, 128,  1, CYAN);
+  display.fillRect(2,  2,   1, 125, CYAN);
+  display.fillRect(2, 127,128,  1, CYAN);
+  display.fillRect(127, 2,  1, 125, CYAN);
+  int i;
+  for(i=0;i<frame.n_platforms;i++){
+    display.fillRect(x_offset + frame.platforms[i][0]*11,
+                    y_offset + frame.platforms[i][1]*11,
+                    frame.platforms[i][2]*11,
+                    frame.platforms[i][3]*11,
+                    random(0x0010,0xFFFF));
+  }
+  if(frame.key_visible){
+    display.fillCircle(
+     x_offset + frame.key_pos[0]*11,
+     y_offset + frame.key_pos[1]*11,
+     2,
+     YELLOW);
+  }
+  if(frame.door_visible){
+    display.fillRect(
+      x_offset + frame.door_pos[0]*11,
+     y_offset + frame.door_pos[1]*11,
+     6,11,DARKBROWN);
+  }
+  for(i=0;i<frame.n_obstacles;i++){
+    display.drawCircle(
+      x_offset + frame.obstacles[i][0]*11,
+     y_offset + frame.obstacles[i][1]*11,
+     obstacle_radius,
+     MAGENTA);
+  }
+  for(i=0;i<frame.n_boxes;i++){
+    display.fillRect(
+     x_offset + frame.boxes[i][0]*11,
+     y_offset + frame.boxes[i][1]*11,
+     9,
+     5,
+     BROWN);
+  }
+  for(i=0;i<frame.n_switches;i++){
+    display.fillRect(
+     x_offset+ 2 + frame.switches[i][0]*11,
+     y_offset+ 5 + frame.switches[i][1]*11,
+     2,
+     5,
+     WHITE);
+  }
+  display.fillCircle(
+     x_offset+6 + frame.plr_pos[0]*11,
+     y_offset+6 + frame.plr_pos[1]*11,
+     5,
+     RED);
+  if(frame.key_picked){
+    display.fillCircle(
+     x_offset+6 + frame.plr_pos[0]*11,
+     y_offset+6 + frame.plr_pos[1]*11,
+     2,
+     YELLOW);
+  }
+  int offset = frame.txt.length()/2 ;
+  display.setCursor( 63 - offset*6 , 15 );
+  display.print(frame.txt);
+  
+}
+
+void updateScreen();
 
 frame *initFrame(){
   frame *frame_ptr = (frame*)malloc(sizeof(frame));
@@ -175,10 +335,10 @@ frame *initFrame(){
   frame_ptr->obstacles = (int (*)[2])malloc(N*2*sizeof(int));
   frame_ptr->boxes = (int (*)[2])malloc(N*2*sizeof(int));
   frame_ptr->switches = (int (*)[2])malloc(N*2*sizeof(int));
-  frame_ptr->key_pos = (int *)malloc(2*sizeof(int));
+  frame_ptr->key_pos = (float *)malloc(2*sizeof(float));
   frame_ptr->door_pos = (int *)malloc(2*sizeof(int));
-  frame_ptr->plr_pos = (int *)malloc(2*sizeof(int));
-  frame_ptr->init_plr_pos = (int *)malloc(2*sizeof(int));
+  frame_ptr->plr_pos = (float *)malloc(2*sizeof(float));
+  frame_ptr->init_plr_pos = (float *)malloc(2*sizeof(float));
   return frame_ptr;
 }
 
@@ -202,6 +362,37 @@ void level1(){
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 1";
   render(*frame_ptr);
+}
+
+void level2(){
+  frame *frame_ptr  = initFrame();
+  frame_ptr->n_platforms = 5;
+  frame_ptr->platforms[0][0]= 0;frame_ptr->platforms[0][1]= 10;frame_ptr->platforms[0][2]= 11;frame_ptr->platforms[0][3]= 1;
+  frame_ptr->platforms[1][0]= 0;frame_ptr->platforms[1][1]= 6;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[2][0]= 4;frame_ptr->platforms[2][1]= 4;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
+  frame_ptr->platforms[3][0]= 6;frame_ptr->platforms[3][1]= 7;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
+  frame_ptr->platforms[4][0]= 10;frame_ptr->platforms[4][1]= 8;frame_ptr->platforms[4][2]= 1;frame_ptr->platforms[4][3]= 1;
+  
+  frame_ptr->n_obstacles = 0;
+  frame_ptr->n_boxes = 0;
+  
+  frame_ptr->n_switches = 4;
+  frame_ptr->switches[0][0] = 0;frame_ptr->switches[0][1] =5; //above platform 1
+  frame_ptr->switches[1][0] = 4;frame_ptr->switches[1][1] =3; //above platform 2
+  frame_ptr->switches[2][0] = 5;frame_ptr->switches[2][1] =6; //above platform 3
+  frame_ptr->switches[3][0] = 10;frame_ptr->switches[3][1] =7; //above platform 4
+  
+  frame_ptr->key_visible = true;
+  frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
+  
+  frame_ptr->door_visible = true;
+  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
+  
+  frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
+  frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
+  frame_ptr->txt = "Level 2";
+  render(*frame_ptr);
+
   
 }
 
