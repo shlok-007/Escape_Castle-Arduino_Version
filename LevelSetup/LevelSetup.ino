@@ -163,7 +163,7 @@ void setup() {
 }
 
 void loop(){
-  level2();
+  level1();
   while (true);
 
 }
@@ -174,8 +174,8 @@ bool checkCeilCollision(frame *frame){
 }
 
 bool checkFloorCollision(frame *frame){
-  if(frame->plr_pos[1] >= 10){
-    frame->plr_pos[1]=10;
+  if(frame->plr_pos[1] + 1 >= 10){
+    // frame->plr_pos[1]=10;
     return true;}
   return false;
 }
@@ -204,7 +204,7 @@ bool checkFallCollision(frame *frame){
     plrRx = frame->plr_pos[0] + 1, 
     plrY = frame->plr_pos[1]+1;
     pltLx = frame->platforms[i][0], 
-    pltRx = frame->platforms[i][0] + frame->platforms[i][2], 
+    pltRx = frame->platforms[i][0] + frame->platforms[i][2] , 
     pltY = frame->platforms[i][1];
     if( plrRx > pltLx && plrLx < pltRx && plrY >= pltY ) {
       frame->plr_pos[1]=pltY-1;  
@@ -264,14 +264,14 @@ void applyPhysics(frame *frame){
   zAccel -= 256;
 
   if(xAccel > accelThreshold){
-    if(!checkRightCollision(frame)) frame->plr_pos[0] += xVelocity;
+    if(!checkRightCollision(frame) && !checkRightWallCollision(frame)) frame->plr_pos[0] += xVelocity;
     else if(checkRightWallCollision(frame))    frame->plr_pos[0] = 0;
   }
   else if(xAccel < -accelThreshold){
-    if(!checkLeftCollision(frame))  frame->plr_pos[0] -= xVelocity;
+    if(!checkLeftCollision(frame) && !checkLeftWallCollision(frame))  frame->plr_pos[0] -= xVelocity;
     else if(checkLeftWallCollision(frame)) frame->plr_pos[0] = 10;
   }
-  if(zAccel > jumpZThreshold && (checkFallCollision(frame) || checkFloorCollision(frame)))  yVelocity = jumpVelocity;
+  if(yAccel < -jumpYThreshold && (checkFallCollision(frame) || checkFloorCollision(frame)))  yVelocity = jumpVelocity;
   else{
     if(!checkFallCollision(frame) && !checkFloorCollision(frame))  yVelocity -= gravity;
     else if(checkFallCollision(frame) || checkFloorCollision(frame))  yVelocity = 0;}
@@ -290,6 +290,11 @@ void applyPhysics(frame *frame){
       frame->plr_pos[1] -= yVelocity;
       }
     else  yVelocity = 0;
+
+    if(frame->plr_pos[0]>10)  frame->plr_pos[0]=10;
+    if(frame->plr_pos[0]<0)  frame->plr_pos[0]=0;
+    if(frame->plr_pos[1]>10)  frame->plr_pos[1]=10;
+    if(frame->plr_pos[1]<0)  frame->plr_pos[1]=0;
   }
 
 }
@@ -399,27 +404,58 @@ frame *initFrame(){
 
 void level1(){
   frame *frame_ptr  = initFrame();
-  frame_ptr->n_platforms = 2;
+  frame_ptr->n_platforms = 7;
   int arr1[] = {3,4,4,1};
-  frame_ptr->platforms[0][0]= 3;frame_ptr->platforms[0][1]= 10;frame_ptr->platforms[0][2]= 4;frame_ptr->platforms[0][3]= 1;
-  frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 3;frame_ptr->platforms[1][3]= 1;
-  frame_ptr->n_obstacles = 1;
-  frame_ptr->obstacles[0][0] = 3;frame_ptr->obstacles[0][1]=5;
-  frame_ptr->n_boxes = 1;
-  frame_ptr->boxes[0][0] = 5;frame_ptr->boxes[0][1] = 3;
-  frame_ptr->n_switches = 1;
-  frame_ptr->switches[0][0] = 9;frame_ptr->switches[0][1] =9;
-  frame_ptr->key_visible = true;
-  frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
+  frame_ptr->platforms[5][0]= 3;frame_ptr->platforms[5][1]= 10;frame_ptr->platforms[5][2]= 4;frame_ptr->platforms[5][3]= 1;
+  frame_ptr->platforms[4][0]= 8;frame_ptr->platforms[4][1]= 2;frame_ptr->platforms[4][2]= 3;frame_ptr->platforms[4][3]= 1;
+   frame_ptr->platforms[0][0]= 1;frame_ptr->platforms[0][1]= 2;frame_ptr->platforms[0][2]= 2;frame_ptr->platforms[0][3]= 1;
+  frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[2][0]= 1;frame_ptr->platforms[2][1]= 6;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
+  frame_ptr->platforms[3][0]= 8;frame_ptr->platforms[3][1]= 6;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
+  frame_ptr->platforms[6][0]= 4;frame_ptr->platforms[6][1]= 4;frame_ptr->platforms[6][2]= 2;frame_ptr->platforms[6][3]= 1;
+  // frame_ptr->n_obstacles = 1;
+  // frame_ptr->obstacles[0][0] = 3;frame_ptr->obstacles[0][1]=5;
+  // frame_ptr->n_boxes = 1;
+  // frame_ptr->boxes[0][0] = 5;frame_ptr->boxes[0][1] = 3;
+  // frame_ptr->n_switches = 1;
+  // frame_ptr->switches[0][0] = 9;frame_ptr->switches[0][1] =9;
+  // frame_ptr->key_visible = true;
+  // frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
   frame_ptr->door_visible = true;
-  frame_ptr->door_pos[0] = 9;frame_ptr->door_pos[1] = 9;
+  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
   frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Your place is here:";
-  while(1){
+   while(1)
+  {
     applyPhysics(frame_ptr);
     render(*frame_ptr);
+    if(frame_ptr->door_visible==true && frame_ptr->plr_pos[0]==10 && frame_ptr->plr_pos[1]==10)
+    {
+       reachedDoor();
+    }
   }
+  // frame_ptr->n_platforms = 2;
+  // int arr1[] = {3,4,4,1};
+  // frame_ptr->platforms[0][0]= 3;frame_ptr->platforms[0][1]= 10;frame_ptr->platforms[0][2]= 4;frame_ptr->platforms[0][3]= 1;
+  // frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 3;frame_ptr->platforms[1][3]= 1;
+  // frame_ptr->n_obstacles = 1;
+  // frame_ptr->obstacles[0][0] = 3;frame_ptr->obstacles[0][1]=5;
+  // frame_ptr->n_boxes = 1;
+  // frame_ptr->boxes[0][0] = 5;frame_ptr->boxes[0][1] = 3;
+  // frame_ptr->n_switches = 1;
+  // frame_ptr->switches[0][0] = 9;frame_ptr->switches[0][1] =9;
+  // frame_ptr->key_visible = true;
+  // frame_ptr->key_pos[0] = 3;frame_ptr->key_pos[1] = 3;
+  // frame_ptr->door_visible = true;
+  // frame_ptr->door_pos[0] = 9;frame_ptr->door_pos[1] = 9;
+  // frame_ptr->plr_pos[0] = 3;frame_ptr->plr_pos[1] = 0;
+  // frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
+  // frame_ptr->txt = "Your place is here:";
+  // while(1){
+  //   applyPhysics(frame_ptr);
+  //   render(*frame_ptr);
+  // }
 }
 
 void level2(){
@@ -459,32 +495,34 @@ void level2(){
 
 void level4(){
   frame *frame_ptr = initFrame();
-  frame_ptr = 6;
+   frame_ptr->n_platforms = 7;
     
-  frame_ptr->platforms[0][0]= 0;frame_ptr->platforms[0][1]= 3;frame_ptr->platforms[0][2]= 2;frame_ptr->platforms[0][3]= 1;
-  frame_ptr->platforms[1][0]= 7;frame_ptr->platforms[1][1]= 3;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
-  frame_ptr->platforms[2][0]= 0;frame_ptr->platforms[2][1]= 6;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
-  frame_ptr->platforms[3][0]= 7;frame_ptr->platforms[3][1]= 6;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
-  frame_ptr->platforms[4][0]= 4;frame_ptr->platforms[4][1]= 5;frame_ptr->platforms[4][2]= 1;frame_ptr->platforms[4][3]= 1;
-  frame_ptr->platforms[5][0]= 3;frame_ptr->platforms[4][1]= 10;frame_ptr->platforms[4][2]= 3;frame_ptr->platforms[4][3]= 2;
-  frame_ptr->plr_pos[0] = 7;frame_ptr->plr_pos[1] = 10;
-  frame_ptr->init_plr_pos = 7;frame_ptr->init_plr_pos = 10;
+  frame_ptr->platforms[0][0]= 1;frame_ptr->platforms[0][1]= 2;frame_ptr->platforms[0][2]= 2;frame_ptr->platforms[0][3]= 1;
+  frame_ptr->platforms[1][0]= 8;frame_ptr->platforms[1][1]= 2;frame_ptr->platforms[1][2]= 2;frame_ptr->platforms[1][3]= 1;
+  frame_ptr->platforms[2][0]= 1;frame_ptr->platforms[2][1]= 6;frame_ptr->platforms[2][2]= 2;frame_ptr->platforms[2][3]= 1;
+  frame_ptr->platforms[3][0]= 8;frame_ptr->platforms[3][1]= 6;frame_ptr->platforms[3][2]= 2;frame_ptr->platforms[3][3]= 1;
+  frame_ptr->platforms[4][0]= 4;frame_ptr->platforms[4][1]= 4;frame_ptr->platforms[4][2]= 2;frame_ptr->platforms[4][3]= 1;
+  frame_ptr->platforms[5][0]= 3;frame_ptr->platforms[5][1]= 9;frame_ptr->platforms[5][2]= 4;frame_ptr->platforms[5][3]= 1;
+  frame_ptr->platforms[6][0]= 0;frame_ptr->platforms[6][1]= 10;frame_ptr->platforms[6][2]= 11;frame_ptr->platforms[6][3]= 1;
+
+  frame_ptr->plr_pos[0] = 8;frame_ptr->plr_pos[1] = 9;
+  frame_ptr->init_plr_pos = 8;frame_ptr->init_plr_pos = 9;
   frame_ptr->txt = "Your place is here:";
 
   frame_ptr->door_visible = false;
-  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 10;
+  frame_ptr->door_pos[0] = 10;frame_ptr->door_pos[1] = 9;
 
   while(1)
   {
     applyPhysics(frame_ptr);
     render(*frame_ptr);
     
-    if((plr_pos[0]==7 || plr_pos[0]==8) && (plr_pos[1]==2))
+    if((frame_ptr->plr_pos[0]==7 || frame_ptr->plr_pos[0]==8) && (frame_ptr->plr_pos[1]==2))
     {
        frame_ptr->door_visible=true;
     }
 
-    if(frame_ptr->door_visible==true && plr_pos[0]==10 && plr_pos[1]==10)
+    if(frame_ptr->door_visible==true && frame_ptr->plr_pos[0]==10 && frame_ptr->plr_pos[1]==10)
     {
        reachedDoor();
     }
