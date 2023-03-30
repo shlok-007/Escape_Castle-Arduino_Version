@@ -451,11 +451,11 @@ void level2(){
   frame_ptr->init_plr_pos = 3;frame_ptr->init_plr_pos = 0;
   frame_ptr->txt = "Level 2: not all are correct";
   render(*frame_ptr);
+
   // switch state assumed to be 0 and 1
-  
   while(1){
     // record_pos takes the position after the click of the button
-    int record_pos_x, record_pos_y;
+    int record_pos_x=frame_ptr->plr_pos[0], record_pos_y=frame_ptr->plr_pos[1];
     int total_on_state=0;
     for(int i=0;i<4;i++){ // updates the switch state
       if(record_pos_x==frame_ptr->switches[i][0] && record_pos_y==frame_ptr->switches[i][1]){
@@ -468,13 +468,13 @@ void level2(){
     else if(frame_ptr->switches[2][2]){
       frame_ptr->key_visible=1;
       // take key
-      int record_keypos_x, record_keypos_y;
+      int record_keypos_x=frame_ptr->plr_pos[0], record_keypos_y=frame_ptr->plr_pos[1];
       if(record_keypos_x==frame_ptr->key_pos[0] && record_keypos_y==frame_ptr->key_pos[1]){
         key_picked=true;
       }
     }
     
-    int record_doorPos_x, record_doorPos_y;
+    int record_doorPos_x=frame_ptr->plr_pos[0], record_doorPos_y=frame_ptr->plr_pos[1];
     if(key_picked==true && record_doorPos_x==door_pos[0] && record_doorPos_y==door_pos[1]){
       // Level Completed
       reachedDoor();
