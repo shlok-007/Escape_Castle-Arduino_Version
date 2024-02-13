@@ -1,4 +1,4 @@
-# IITBBS_GC_RS_6
+# Escape Castle: Arduino Version
 ArduGem Submission for GC'23
 
 Escape Castle Game
