@@ -1,5 +1,5 @@
 # Escape Castle: Arduino Version
-We developed it for ArduGem for GC'23(IIT's Bhubaneswar's inter-branch competition).
+We developed it for ArduGem for GC'23(IIT Bhubaneswar's inter-branch competition).
 
 # Description:
 Tricky Castle is a simple 2D platformer game that uses an accelerometer to control the player character. The objective of the game is to reach the door at the end of each level while avoiding obstacles and enemies. The player can jump by shaking the accelerometer, and the longer they shake it, the higher the jump.
